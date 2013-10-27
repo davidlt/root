@@ -3195,8 +3195,29 @@ int RootCling(int argc,
    clingArgs.push_back("-Xclang");
    clingArgs.push_back((dictname + ".h").c_str());
 
-   // Add defines for the toolchain
-   AddGccToolChainDefines(clingArgs);
+   // TODO: Check if directories exist before using
+   const char* gccToolchain = getenv("ROOT_GCC_TOOLCHAIN");
+   const char* envInclPath = getenv("ROOT_INCLUDE_PATH");
+
+   if (gccToolchain) {
+      if (!envInclPath) {
+        ROOT::TMetaUtils::Error(0, "rootcling: must also set ROOT_INCLUDE_PATH when ROOT_GCC_TOOLCHAIN is set!");
+      }
+
+      clingArgs.push_back("-gcc-toolchain");
+      clingArgs.push_back(gccToolchain);
+      clingArgs.push_back("-nostdinc++");
+
+      std::istringstream envInclPathsStream(envInclPath);
+      std::string inclPath;
+      while (std::getline(envInclPathsStream, inclPath, ':')) {
+        clingArgs.push_back("-I");
+        clingArgs.push_back(inclPath);
+      }
+   } else {
+      // Add defines for the toolchain
+      AddGccToolChainDefines(clingArgs);
+   }
    
    std::vector<const char*> clingArgsC;
    for (size_t iclingArgs = 0, nclingArgs = clingArgs.size();

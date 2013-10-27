@@ -93,6 +93,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <sstream>
 #include <cassert>
 #include <map>
 #include <set>
@@ -847,31 +848,25 @@ TCling::TCling(const char *name, const char *title)
 
    // FIXME: enables relocatability for experiments' framework headers until PCMs
    // are available.
+   // TODO: Check if directories exist before using
    const char* gccToolchain = getenv("ROOT_GCC_TOOLCHAIN");
    const char* envInclPath = getenv("ROOT_INCLUDE_PATH");
 
    if (gccToolchain) {
-      // We don't actually need to pass this (it will be "unused").
-      // But we do need to signal "-nostdinc++":
-      //clingArgsStorage.push_back("-gcc-toolchain");
-      //clingArgsStorage.push_back(gccToolchain);
-      clingArgsStorage.push_back("-nostdinc++");
       if (!envInclPath) {
          ::Error("TCling::TCling", "Must also set ROOT_INCLUDE_PATH when ROOT_GCC_TOOLCHAIN is set!");
       }
-   }
+      clingArgsStorage.push_back("-gcc-toolchain");
+      clingArgsStorage.push_back(gccToolchain);
+      clingArgsStorage.push_back("-nostdinc++");
 
-   if (envInclPath) {
-      TString strEnvInclPath(envInclPath);
-      TString tok;
-      Ssiz_t from = 0;
-      while (strEnvInclPath.Tokenize(tok, from, ":")) {
+      std::istringstream envInclPathsStream(envInclPath);
+      std::string inclPath;
+      while (std::getline(envInclPathsStream, inclPath, ':')) {
          clingArgsStorage.push_back("-I");
-         clingArgsStorage.push_back(tok.Data());
+         clingArgsStorage.push_back(inclPath);
       }
-   }
-
-   if (!gccToolchain) {
+   } else {
 #ifdef R__GCC_TOOLCHAIN
       clingArgsStorage.push_back("-gcc-toolchain");
       clingArgsStorage.push_back(R__GCC_TOOLCHAIN);
